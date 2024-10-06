@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
 '''
-Programming Project - Login Feature Challenge
+# Login Feature Project
+
+A test project for my college course.
+
+## TODO:
 
 1. Ask the user for a username and password. Store these in variables with
 appropriate names. Have clear messages for users and make sure you introduce
@@ -38,70 +42,91 @@ import sys
 from getpass import getpass
 
 
+class Interface:
+    '''
+    Collection of methods for displaying information to, and receiving
+    information from, the user in a consistant and modifiable way. 
+    '''
+
+    def __init__(self) -> None:
+        '''
+        Empty meta method.
+        '''
+
+        pass
+
+        return
+
+    def info(self, text: str, title: bool = False) -> None:
+        '''
+        Prints a message to user.
+
+        Optionaly formats it as a title.
+        '''
+
+        if title:
+            print(f'# {text}\n')
+        else:
+            print(text)
+
+        return
+    
+    def prompt(self, prompt_text: str, hidden: bool = False) -> str:
+        '''
+        Prompts the user for an input and returns this input.
+
+        Optionally masks the user input with `getpass.getpass()`.
+        '''
+
+        # prompt and store the input value
+        if hidden:
+            user_text = getpass(prompt_text)
+        else:
+            user_text = input(prompt_text)
+
+        return user_text
+
 class Login:
+    '''
+    Collection of methods for generating a login window for an application.
+    '''
+
+    def __init__(self) -> None:
+        '''
+        Initialises the object.  
+        '''
+
+        # create object for the interface
+        self.InterfaceObj = Interface()
+
+        # print a title
+        self.InterfaceObj.info('Login Feature Project', title=True)
+
+        return
+
     ...
 
-
-def prompt(fields: list[dict]):
-    '''
-    Prompts the user for an input and returns it. `fields` is a `list` of
-    `dicts` structured as follows:
-
-    ```python
-    fields = [
-        {
-            "field_name": "username",
-            "prompt_text": "Please enter a username: "
-        },
-        {
-            "field_name": "password",
-            "prompt_text": "Please enter a password: ",
-            "hidden": True
-        }
-    ]
-    ```
-
-    The options for each field are as follows:
-
-     - `field_name`
-       - `string`, the key to store the input results under
-     - `prompt_text`
-       - `string`, contains the text to print
-     - `hidden`
-       - `bool`, whether or not to mask the user input
-    '''
-
-    # setup return dictionary
-    inputs = dict()
-
-    # prompt and store for each field
-    for field in fields:
-        if "hidden" in field and field["hidden"] == True:
-            inputs[field["field_name"]] = getpass(field["prompt_text"])
-        else:
-            inputs[field["field_name"]] = input(field["prompt_text"])
-
-    return inputs
 
 def main() -> None:
     '''
         
     '''
 
-    fields = [
-        {
-            "field_name": "username",
-            "prompt_text": "Please enter a username: "
-        },
-        {
-            "field_name": "password",
-            "prompt_text": "Please enter a password: ",
-            "hidden": True
-        }
-    ]
-    print(prompt(fields))
+    LoginObj = Login()
 
+    user = dict()
+    user['username'] = LoginObj.InterfaceObj.prompt(
+        'Username: '
+    )
+    user['password'] = LoginObj.InterfaceObj.prompt(
+        'Password: ',
+        hidden=True
+    )
 
-# if called directly
+    print('\n'+str(user))
+
+    return
+
+# only execute if called directly
 if __name__ == '__main__':
     sys.exit(main())
