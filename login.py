@@ -36,10 +36,11 @@ if user not in the file.
 '''
 
 
+import json
 import os
-import pickle
 import sys
 from getpass import getpass
+from hashlib import sha256
 
 
 class Interface:
@@ -88,6 +89,24 @@ class Interface:
 
         return user_text
 
+    def option(self, prompt_text: str, options: list[str]) -> int:
+        '''
+        Prompts the user to pick and option from a list, and returns the index
+        of this option.
+        '''
+
+        # print the question
+        print(f'{prompt_text}')
+        # print options in a numbered list
+        for option in options:
+            print(f'{options.index(option)+1}) {option}')
+
+        # retrieve choice
+        choice = int(input('\nPlease enter a number: ')) - 1
+        print()
+
+        return choice
+
 class Login:
     '''
     Collection of methods for generating a login window for an application.
@@ -108,9 +127,113 @@ class Login:
             +'program.'
         )
 
+        # setup data file
+        self.userdata_path = os.path.join(
+            os.path.dirname(__file__),
+            'userdata.json'
+        )
+
+        # login or signup
+        choice = self.InterfaceObj.option(
+            'What would you like to do?',
+            ['Login', 'Sign Up']
+        )
+
+        match choice:
+            case 0:
+                self.login()
+            case 1:
+                self.signup()
+            case _:
+                pass
+
         return
 
-    ...
+    def login(self) -> None:
+        '''
+        Method for processing a user login.
+        '''
+
+        # retrieve credentials and hash them
+        username_hash = sha256(
+            self.InterfaceObj.prompt(
+                'Username: '
+            ).encode()
+        ).hexdigest()
+        password_hash = sha256(
+            self.InterfaceObj.prompt(
+                'Password: ',
+                hidden=True
+            ).encode()
+        ).hexdigest()
+
+        # compare credentials to data on file
+        with open(self.userdata_path, 'r') as userdata_file:
+            userdata = json.load(userdata_file)
+        if (username_hash in userdata
+            and password_hash == userdata[username_hash]["password"]):
+
+            # if username is valid and passwords match
+            return 
+        else:
+            # if username invalid or password doesn't match
+            return 
+
+    def signup(self) -> None:
+        '''
+        Method for creating a new user.
+        '''
+
+        # retrieve a username and hash it
+        username_hash = sha256(
+            self.InterfaceObj.prompt(
+                'Username: '
+            ).encode()
+        ).hexdigest()
+
+        # load current data from file
+        with open(self.userdata_path, 'r') as userdata_file:
+            userdata = json.load(userdata_file)
+
+        # check if user already exists
+        if username_hash in userdata:
+            return
+
+        # retrieve a password and hash it
+        password_hash = sha256(
+            self.InterfaceObj.prompt(
+                'Password: ',
+                hidden=True
+            ).encode()
+        ).hexdigest()
+
+        # retrieve a confirmation of the password
+        confirm_password_hash = sha256(
+            self.InterfaceObj.prompt(
+                'Confirm Password: ',
+                hidden=True
+            ).encode()
+        ).hexdigest()
+
+        # confirm the user has typed it correctly
+        if password_hash != confirm_password_hash:
+            return 
+        
+        # retrieve a display name
+        display_name = self.InterfaceObj.prompt(
+            'Display Name: '
+        )
+        
+        # add new user to data
+        userdata[username_hash] = dict() 
+        userdata[username_hash]["password"] = password_hash
+        userdata[username_hash]["display_name"] = display_name
+    
+        # write new data to file
+        with open(self.userdata_path, 'w') as userdata_file:
+            json.dump(userdata, userdata_file)
+
+        return 
 
 
 def main() -> None:
@@ -120,19 +243,12 @@ def main() -> None:
 
     LoginObj = Login()
 
-    user = dict()
-    user['username'] = LoginObj.InterfaceObj.prompt(
-        'Username: '
-    )
-    user['password'] = LoginObj.InterfaceObj.prompt(
-        'Password: ',
-        hidden=True
-    )
-
-    print('\n'+str(user))
-
     return
 
 # only execute if called directly
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print()
+        sys.exit()
