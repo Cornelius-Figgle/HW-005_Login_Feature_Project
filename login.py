@@ -67,7 +67,10 @@ class Interface:
     '''
 
     def __init__(self) -> None:
-        '''Empty meta method.'''
+        '''
+        Empty meta method.
+        '''
+        
         return
 
     def info(self, message_text: str, title: bool = False) -> None:
