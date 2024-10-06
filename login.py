@@ -53,21 +53,23 @@ class Interface:
         Empty meta method.
         '''
 
+        # do nothing
         pass
 
         return
 
-    def info(self, text: str, title: bool = False) -> None:
+    def info(self, message_text: str, title: bool = False) -> None:
         '''
         Prints a message to user.
 
         Optionaly formats it as a title.
         '''
 
+        # format & print the message
         if title:
-            print(f'# {text}\n')
+            print(f'# {message_text}\n')
         else:
-            print(text)
+            print(f'{message_text}\n')
 
         return
     
@@ -99,8 +101,12 @@ class Login:
         # create object for the interface
         self.InterfaceObj = Interface()
 
-        # print a title
+        # print a title and description
         self.InterfaceObj.info('Login Feature Project', title=True)
+        self.InterfaceObj.info(
+            'Simple login feature that could be implemented into another '
+            +'program.'
+        )
 
         return
 
