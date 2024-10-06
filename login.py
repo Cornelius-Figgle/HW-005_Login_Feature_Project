@@ -43,6 +43,23 @@ from getpass import getpass
 from hashlib import sha256
 
 
+class AccountNotFound(Exception):
+    '''Raised when the requested account isn't present in the data file.'''
+    pass
+
+class UnmatchedPasswords(Exception):
+    '''Raised when the confirmation password does't match.'''
+    pass
+
+class SelectionOutOfRange(Exception):
+    '''Raised when the user selects an option not in the list.'''
+    pass
+
+class FieldEmpty(Exception):
+    '''Raised when the user doesn't fill out a field.'''
+    pass
+
+
 class Interface:
     '''
     Collection of methods for displaying information to, and receiving
@@ -50,13 +67,7 @@ class Interface:
     '''
 
     def __init__(self) -> None:
-        '''
-        Empty meta method.
-        '''
-
-        # do nothing
-        pass
-
+        '''Empty meta method.'''
         return
 
     def info(self, message_text: str, title: bool = False) -> None:
@@ -114,9 +125,9 @@ class Login:
 
     def __init__(self) -> None:
         '''
-        Initialises the object.  
+        Initialises the object.
         '''
-
+        
         # create object for the interface
         self.InterfaceObj = Interface()
 
@@ -132,20 +143,6 @@ class Login:
             os.path.dirname(__file__),
             'userdata.json'
         )
-
-        # login or signup
-        choice = self.InterfaceObj.option(
-            'What would you like to do?',
-            ['Login', 'Sign Up']
-        )
-
-        match choice:
-            case 0:
-                self.login()
-            case 1:
-                self.signup()
-            case _:
-                pass
 
         return
 
@@ -238,10 +235,24 @@ class Login:
 
 def main() -> None:
     '''
-        
+    Controls the main program flow.
     '''
 
+    # initialise object
     LoginObj = Login()
+    
+    # start auth
+    choice = LoginObj.InterfaceObj.option(
+        'What would you like to do?',
+        ['Login', 'Sign Up']
+    )
+    match choice:
+        case 0:
+            LoginObj.login()
+        case 1:
+            LoginObj.signup()
+        case _:
+            pass
 
     return
 
