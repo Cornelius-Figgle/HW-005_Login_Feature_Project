@@ -47,8 +47,11 @@ class AccountNotFound(Exception):
     '''Raised when the requested account isn't present in the data file.'''
     pass
 
+class IncorrectPassword(Exception):
+    '''Raised when the password is not correct for the requested account.'''
+
 class UnmatchedPasswords(Exception):
-    '''Raised when the confirmation password does't match.'''
+    '''Raised when the confirmation password does not match.'''
     pass
 
 class SelectionOutOfRange(Exception):
@@ -146,6 +149,16 @@ class Login:
             os.path.dirname(__file__),
             'userdata.json'
         )
+
+        # create initial data file if not present
+        if not os.path.exists(self.userdata_path):
+            with open(self.userdata_path, 'w') as userdata_file:
+                self.InterfaceObj.info(
+                    'File `userdata.json` does not exist, creating now.'
+                )
+                
+                # creates a blank file
+                json.dump({}, userdata_file)
 
         return
 
@@ -258,6 +271,7 @@ def main() -> None:
             pass
 
     return
+
 
 # only execute if called directly
 if __name__ == '__main__':
