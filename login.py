@@ -49,6 +49,11 @@ class AccountNotFound(Exception):
 
 class IncorrectPassword(Exception):
     '''Raised when the password is not correct for the requested account.'''
+    pass
+
+class AccountAlreadyExists(Exception):
+    '''Raised when the user tries to create an account that already exists.'''
+    pass
 
 class UnmatchedPasswords(Exception):
     '''Raised when the confirmation password does not match.'''
@@ -162,17 +167,30 @@ class Login:
 
         return
 
-    def login(self) -> None:
+    def login(self) -> str:
         '''
         Method for processing a user login.
+
+        Returns the hashed username if login is successful, raises an error if
+        not.
         '''
 
-        # retrieve credentials and hash them
+        # retrieve username and hash it
         username_hash = sha256(
             self.InterfaceObj.prompt(
                 'Username: '
             ).encode()
         ).hexdigest()
+        
+        # compare credentials to data on file
+        with open(self.userdata_path, 'r') as userdata_file:
+            userdata = json.load(userdata_file)
+
+        # if username is invalid
+        if username_hash not in userdata:
+            raise AccountNotFound()
+
+        # retrieve password and hash it
         password_hash = sha256(
             self.InterfaceObj.prompt(
                 'Password: ',
@@ -180,19 +198,13 @@ class Login:
             ).encode()
         ).hexdigest()
 
-        # compare credentials to data on file
-        with open(self.userdata_path, 'r') as userdata_file:
-            userdata = json.load(userdata_file)
-        if (username_hash in userdata
-            and password_hash == userdata[username_hash]["password"]):
+        # if password is incorrect
+        if password_hash != userdata[username_hash]["password"]:
+            raise IncorrectPassword()
 
-            # if username is valid and passwords match
-            return 
-        else:
-            # if username invalid or password doesn't match
-            return 
+        return username_hash
 
-    def signup(self) -> None:
+    def signup(self) -> str:
         '''
         Method for creating a new user.
         '''
@@ -210,7 +222,7 @@ class Login:
 
         # check if user already exists
         if username_hash in userdata:
-            return
+            raise AccountAlreadyExists()
 
         # retrieve a password and hash it
         password_hash = sha256(
@@ -230,7 +242,7 @@ class Login:
 
         # confirm the user has typed it correctly
         if password_hash != confirm_password_hash:
-            return 
+            raise UnmatchedPasswords()
         
         # retrieve a display name
         display_name = self.InterfaceObj.prompt(
@@ -246,7 +258,7 @@ class Login:
         with open(self.userdata_path, 'w') as userdata_file:
             json.dump(userdata, userdata_file)
 
-        return 
+        return username_hash
 
 
 def main() -> None:
