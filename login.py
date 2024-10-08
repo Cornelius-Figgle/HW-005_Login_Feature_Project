@@ -101,7 +101,10 @@ class Interface:
 
         return
     
-    def prompt(self, prompt_text: str, hidden: bool = False) -> str:
+    def prompt(
+            self, prompt_text: str, hidden: bool = False, newline: bool = True
+        ) -> str:
+        
         '''
         Prompts the user for an input and returns this input.
 
@@ -113,6 +116,10 @@ class Interface:
             user_text = getpass(prompt_text)
         else:
             user_text = input(prompt_text)
+
+        # optional formatting
+        if newline:
+            print()
 
         return user_text
 
@@ -183,7 +190,8 @@ class Login:
         # retrieve username and hash it
         username_hash = sha256(
             self.InterfaceObj.prompt(
-                'Username: '
+                'Username: ',
+                newline=False
             ).encode()
         ).hexdigest()
         
@@ -204,12 +212,14 @@ class Login:
         ).hexdigest()
 
         # if password is incorrect
-        if password_hash != userdata[username_hash]["password"]:
+        if password_hash != userdata[username_hash]['password']:
             raise IncorrectPassword()
 
 
         # set current account
         self.current_user = username_hash
+        
+        self.InterfaceObj.info('Logged in successfully.')
 
         return
     
@@ -221,7 +231,8 @@ class Login:
         # retrieve a username and hash it
         username_hash = sha256(
             self.InterfaceObj.prompt(
-                'Username: '
+                'Username: ',
+                newline=False
             ).encode()
         ).hexdigest()
 
@@ -235,12 +246,14 @@ class Login:
 
         # retrieve a display name
         display_name = self.InterfaceObj.prompt(
-            'Display Name: '
+            'Display Name: ',
+            newline=False
         )
         
         # retrieve an email address
         email_address = self.InterfaceObj.prompt(
-            'Email Address: '
+            'Email Address: ',
+            newline=False
         )
 
         # check is the email is valid
@@ -251,7 +264,8 @@ class Login:
         password_hash = sha256(
             self.InterfaceObj.prompt(
                 'Password: ',
-                hidden=True
+                hidden=True,
+                newline=False
             ).encode()
         ).hexdigest()
 
@@ -269,9 +283,9 @@ class Login:
       
         # add new user to data
         userdata[username_hash] = dict() 
-        userdata[username_hash]["password"] = password_hash
-        userdata[username_hash]["display_name"] = display_name
-        userdata[username_hash]["email_address"] = email_address
+        userdata[username_hash]['password'] = password_hash
+        userdata[username_hash]['display_name'] = display_name
+        userdata[username_hash]['email_address'] = email_address
     
         # write new data to file
         with open(self.userdata_path, 'w') as userdata_file:
@@ -279,6 +293,8 @@ class Login:
 
         # set current account
         self.current_user = username_hash
+
+        self.InterfaceObj.info('Account created successfully.')
 
         return
 
