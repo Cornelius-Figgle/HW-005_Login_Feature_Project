@@ -41,6 +41,7 @@ import os
 import sys
 from getpass import getpass
 from hashlib import sha256
+from re import fullmatch
 
 
 class AccountNotFound(Exception):
@@ -65,6 +66,10 @@ class SelectionOutOfRange(Exception):
 
 class FieldEmpty(Exception):
     '''Raised when the user doesn't fill out a field.'''
+    pass
+
+class InvalidEmail(Exception):
+    '''Raised when the email address is invalid.'''
     pass
 
 
@@ -165,14 +170,14 @@ class Login:
                 # creates a blank file
                 json.dump({}, userdata_file)
 
+        # set current account
+        self.current_user = None
+
         return
 
-    def login(self) -> str:
+    def login(self) -> None:
         '''
         Method for processing a user login.
-
-        Returns the hashed username if login is successful, raises an error if
-        not.
         '''
 
         # retrieve username and hash it
@@ -202,9 +207,13 @@ class Login:
         if password_hash != userdata[username_hash]["password"]:
             raise IncorrectPassword()
 
-        return username_hash
 
-    def signup(self) -> str:
+        # set current account
+        self.current_user = username_hash
+
+        return
+    
+    def signup(self) -> None:
         '''
         Method for creating a new user.
         '''
@@ -223,6 +232,20 @@ class Login:
         # check if user already exists
         if username_hash in userdata:
             raise AccountAlreadyExists()
+
+        # retrieve a display name
+        display_name = self.InterfaceObj.prompt(
+            'Display Name: '
+        )
+        
+        # retrieve an email address
+        email_address = self.InterfaceObj.prompt(
+            'Email Address: '
+        )
+
+        # check is the email is valid
+        if not fullmatch(r'[^@]+@[^@]+\.[^@]+', email_address):
+            raise InvalidEmail()
 
         # retrieve a password and hash it
         password_hash = sha256(
@@ -243,22 +266,21 @@ class Login:
         # confirm the user has typed it correctly
         if password_hash != confirm_password_hash:
             raise UnmatchedPasswords()
-        
-        # retrieve a display name
-        display_name = self.InterfaceObj.prompt(
-            'Display Name: '
-        )
-        
+      
         # add new user to data
         userdata[username_hash] = dict() 
         userdata[username_hash]["password"] = password_hash
         userdata[username_hash]["display_name"] = display_name
+        userdata[username_hash]["email_address"] = email_address
     
         # write new data to file
         with open(self.userdata_path, 'w') as userdata_file:
             json.dump(userdata, userdata_file)
 
-        return username_hash
+        # set current account
+        self.current_user = username_hash
+
+        return
 
 
 def main() -> None:
