@@ -42,7 +42,6 @@ import sys
 from getpass import getpass
 from hashlib import sha256
 from re import fullmatch
-from typing import NoReturn
 
 
 # version check
@@ -51,35 +50,6 @@ if (sys.version_info[0] < 3
     
     print("Must be running Python >= 3.10, please upgrade.")
     sys.exit()
-
-
-class AccountNotFound(Exception):
-    '''Raised when the requested account isn't present in the data file.'''
-    pass
-
-class IncorrectPassword(Exception):
-    '''Raised when the password is not correct for the requested account.'''
-    pass
-
-class AccountAlreadyExists(Exception):
-    '''Raised when the user tries to create an account that already exists.'''
-    pass
-
-class UnmatchedPasswords(Exception):
-    '''Raised when the confirmation password does not match.'''
-    pass
-
-class SelectionOutOfRange(Exception):
-    '''Raised when the user selects an option not in the list.'''
-    pass
-
-class FieldEmpty(Exception):
-    '''Raised when the user doesn't fill out a field.'''
-    pass
-
-class InvalidEmail(Exception):
-    '''Raised when the email address is invalid.'''
-    pass
 
 
 class Interface:
@@ -95,16 +65,19 @@ class Interface:
         
         return
 
-    def info(self, message_text: str, title: bool = False) -> None:
+    def info(self, message_text: str, title: bool = False,
+             error: bool = False) -> None:
         '''
         Prints a message to user.
 
-        Optionaly formats it as a title.
+        Optionaly formats it as a title or an error.
         '''
 
         # format & print the message
         if title:
             print(f'# {message_text}\n')
+        elif error:
+            print(f'\nERROR: {message_text}\n')
         else:
             print(f'{message_text}\n')
 
@@ -137,12 +110,19 @@ class Interface:
         for option in options:
             print(f'{options.index(option)+1}) {option}')
 
-        # retrieve choice
-        choice = int(input('\nPlease enter a number: ')) - 1
-        
-        # check selection in range
-        if choice not in range(len(options)):
-            raise SelectionOutOfRange()
+        while True:
+            # retrieve choice
+            choice = int(input('\nPlease enter a number: ')) - 1
+            
+            # check selection in range
+            if choice in range(len(options)):
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Please choose an option from the list.',
+                    error=True
+                )
+                continue
 
         print()
 
@@ -194,33 +174,46 @@ class Login:
         Method for processing a user login.
         '''
 
-        # retrieve username and hash it
-        username_hash = sha256(
-            self.InterfaceObj.prompt(
-                'Username: '
-            ).encode()
-        ).hexdigest()
-        
-        # compare credentials to data on file
+        # get credentials from file
         with open(self.userdata_path, 'r') as userdata_file:
             userdata = json.load(userdata_file)
 
-        # if username is invalid
-        if username_hash not in userdata:
-            raise AccountNotFound('Account does not exist, please try again.')
+        while True:
+            # retrieve username and hash it
+            username_hash = sha256(
+                self.InterfaceObj.prompt(
+                    'Username: '
+                ).encode()
+            ).hexdigest()
 
-        # retrieve password and hash it
-        password_hash = sha256(
-            self.InterfaceObj.prompt(
-                'Password: ',
-                hidden=True
-            ).encode()
-        ).hexdigest()
+            # if username is invalid
+            if username_hash in userdata:
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Account does not exist, please try again.',
+                    error=True
+                )
+                continue
 
-        # if password is incorrect
-        if password_hash != userdata[username_hash]['password']:
-            raise IncorrectPassword()
+        while True:
+            # retrieve password and hash it
+            password_hash = sha256(
+                self.InterfaceObj.prompt(
+                    'Password: ',
+                    hidden=True
+                ).encode()
+            ).hexdigest()
 
+            # check if password is correct
+            if password_hash == userdata[username_hash]['password']:
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Password is incorrect, please try again.',
+                    error=True
+                )
+                continue
 
         # set current account
         self.current_user = username_hash
@@ -234,55 +227,76 @@ class Login:
         Method for creating a new user.
         '''
 
-        # retrieve a username and hash it
-        username_hash = sha256(
-            self.InterfaceObj.prompt(
-                'Username: '
-            ).encode()
-        ).hexdigest()
-
-        # load current data from file
+        # get current credentials from file
         with open(self.userdata_path, 'r') as userdata_file:
             userdata = json.load(userdata_file)
 
-        # check if user already exists
-        if username_hash in userdata:
-            raise AccountAlreadyExists()
+        while True:
+            # retrieve username and hash it
+            username_hash = sha256(
+                self.InterfaceObj.prompt(
+                    'Username: '
+                ).encode()
+            ).hexdigest()
+
+            # if username is invalid
+            if username_hash in userdata:
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Account already exists, please use a different name.',
+                    error=True
+                )
+                continue
 
         # retrieve a display name
         display_name = self.InterfaceObj.prompt(
             'Display Name: '
         )
         
-        # retrieve an email address
-        email_address = self.InterfaceObj.prompt(
-            'Email Address: '
-        )
+        while True:
+            # retrieve an email address
+            email_address = self.InterfaceObj.prompt(
+                'Email Address: '
+            )
 
-        # check is the email is valid
-        if not fullmatch(r'[^@]+@[^@]+\.[^@]+', email_address):
-            raise InvalidEmail()
+            # check is the email is valid
+            if fullmatch(r'[^@]+@[^@]+\.[^@]+', email_address):
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Email is invalid, please try again.',
+                    error=True
+                )
+                continue
 
-        # retrieve a password and hash it
-        password_hash = sha256(
-            self.InterfaceObj.prompt(
-                'Password: ',
-                hidden=True
-            ).encode()
-        ).hexdigest()
+        while True:
+            # retrieve password and hash it
+            password_hash = sha256(
+                self.InterfaceObj.prompt(
+                    'Password: ',
+                    hidden=True
+                ).encode()
+            ).hexdigest()
 
-        # retrieve a confirmation of the password
-        confirm_password_hash = sha256(
-            self.InterfaceObj.prompt(
-                'Confirm Password: ',
-                hidden=True
-            ).encode()
-        ).hexdigest()
+            # retrieve a confirmation of the password
+            confirm_password_hash = sha256(
+                self.InterfaceObj.prompt(
+                    'Confirm Password: ',
+                    hidden=True
+                ).encode()
+            ).hexdigest()
 
-        # confirm the user has typed it correctly
-        if password_hash != confirm_password_hash:
-            raise UnmatchedPasswords()
-      
+            # check if password is correct
+            if password_hash != confirm_username_hash:
+                break
+            else:
+                self.InterfaceObj.info(
+                    'Passwords do not match, please try again.',
+                    error=True
+                )
+                continue
+
         # add new user to data
         userdata[username_hash] = dict() 
         userdata[username_hash]['password'] = password_hash
@@ -301,19 +315,6 @@ class Login:
         return
 
 
-def iter_except(exceptions: tuple, LoginObj, func, *args, **kwargs) -> NoReturn:
-    '''
-    Convert a call-until-exception interface to an iterator interface.
-    '''
-
-    # loop until the function completes with error
-    while True:
-        try:
-            return func(*args, **kwargs)
-        except exceptions as e:
-            LoginObj.InterfaceObj.info(f'\nERROR: {e}')
-            continue
-
 def main() -> None:
     '''
     Controls the main program flow.
@@ -323,27 +324,16 @@ def main() -> None:
     LoginObj = Login()
     
     # start auth
-    choice = iter_except(
-        (SelectionOutOfRange, FieldEmpty),
-        LoginObj,
-        LoginObj.InterfaceObj.option,
+    choice = LoginObj.InterfaceObj.option(
         'What would you like to do?',
         ['Login', 'Sign Up']
     )
 
     match choice:
         case 0:
-            iter_except(
-                (AccountNotFound, IncorrectPassword, FieldEmpty),
-                LoginObj,
-                LoginObj.login
-            )
+            LoginObj.login()
         case 1:
-            iter_except(
-                (AccountAlreadyExists, UnmatchedPasswords, InvalidEmail, FieldEmpty),
-                LoginObj,
-                LoginObj.signup
-            )
+            LoginObj.signup()
         case _:
             pass
 
