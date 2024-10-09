@@ -42,6 +42,15 @@ import sys
 from getpass import getpass
 from hashlib import sha256
 from re import fullmatch
+from typing import NoReturn
+
+
+# version check
+if (sys.version_info[0] < 3
+    or (sys.version_info[0] >= 3 and sys.version_info[1] < 10)):
+    
+    print("Must be running Python >= 3.10, please upgrade.")
+    sys.exit()
 
 
 class AccountNotFound(Exception):
@@ -101,10 +110,7 @@ class Interface:
 
         return
     
-    def prompt(
-            self, prompt_text: str, hidden: bool = False, newline: bool = True
-        ) -> str:
-        
+    def prompt(self, prompt_text: str, hidden: bool = False) -> str:
         '''
         Prompts the user for an input and returns this input.
 
@@ -116,10 +122,6 @@ class Interface:
             user_text = getpass(prompt_text)
         else:
             user_text = input(prompt_text)
-
-        # optional formatting
-        if newline:
-            print()
 
         return user_text
 
@@ -137,6 +139,11 @@ class Interface:
 
         # retrieve choice
         choice = int(input('\nPlease enter a number: ')) - 1
+        
+        # check selection in range
+        if choice not in range(len(options)):
+            raise SelectionOutOfRange()
+
         print()
 
         return choice
@@ -190,8 +197,7 @@ class Login:
         # retrieve username and hash it
         username_hash = sha256(
             self.InterfaceObj.prompt(
-                'Username: ',
-                newline=False
+                'Username: '
             ).encode()
         ).hexdigest()
         
@@ -201,7 +207,7 @@ class Login:
 
         # if username is invalid
         if username_hash not in userdata:
-            raise AccountNotFound()
+            raise AccountNotFound('Account does not exist, please try again.')
 
         # retrieve password and hash it
         password_hash = sha256(
@@ -219,7 +225,7 @@ class Login:
         # set current account
         self.current_user = username_hash
         
-        self.InterfaceObj.info('Logged in successfully.')
+        self.InterfaceObj.info('\nLogged in successfully.')
 
         return
     
@@ -231,8 +237,7 @@ class Login:
         # retrieve a username and hash it
         username_hash = sha256(
             self.InterfaceObj.prompt(
-                'Username: ',
-                newline=False
+                'Username: '
             ).encode()
         ).hexdigest()
 
@@ -246,14 +251,12 @@ class Login:
 
         # retrieve a display name
         display_name = self.InterfaceObj.prompt(
-            'Display Name: ',
-            newline=False
+            'Display Name: '
         )
         
         # retrieve an email address
         email_address = self.InterfaceObj.prompt(
-            'Email Address: ',
-            newline=False
+            'Email Address: '
         )
 
         # check is the email is valid
@@ -264,8 +267,7 @@ class Login:
         password_hash = sha256(
             self.InterfaceObj.prompt(
                 'Password: ',
-                hidden=True,
-                newline=False
+                hidden=True
             ).encode()
         ).hexdigest()
 
@@ -294,10 +296,23 @@ class Login:
         # set current account
         self.current_user = username_hash
 
-        self.InterfaceObj.info('Account created successfully.')
+        self.InterfaceObj.info('\nAccount created successfully.')
 
         return
 
+
+def iter_except(exceptions: tuple, LoginObj, func, *args, **kwargs) -> NoReturn:
+    '''
+    Convert a call-until-exception interface to an iterator interface.
+    '''
+
+    # loop until the function completes with error
+    while True:
+        try:
+            return func(*args, **kwargs)
+        except exceptions as e:
+            LoginObj.InterfaceObj.info(f'\nERROR: {e}')
+            continue
 
 def main() -> None:
     '''
@@ -308,15 +323,27 @@ def main() -> None:
     LoginObj = Login()
     
     # start auth
-    choice = LoginObj.InterfaceObj.option(
+    choice = iter_except(
+        (SelectionOutOfRange, FieldEmpty),
+        LoginObj,
+        LoginObj.InterfaceObj.option,
         'What would you like to do?',
         ['Login', 'Sign Up']
     )
+
     match choice:
         case 0:
-            LoginObj.login()
+            iter_except(
+                (AccountNotFound, IncorrectPassword, FieldEmpty),
+                LoginObj,
+                LoginObj.login
+            )
         case 1:
-            LoginObj.signup()
+            iter_except(
+                (AccountAlreadyExists, UnmatchedPasswords, InvalidEmail, FieldEmpty),
+                LoginObj,
+                LoginObj.signup
+            )
         case _:
             pass
 
